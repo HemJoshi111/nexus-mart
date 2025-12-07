@@ -83,13 +83,12 @@ const userSchema = new Schema(
     }
 );
 // 🔒 Pre-save Hook: Encrypt password before saving
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
     // If password field hasn't been modified (e.g. user updated their email only), skip hashing
-    if (!this.isModified("password")) return next();
+    if (!this.isModified("password")) return;
 
     // Hash the password with 10 rounds of salt
     this.password = await bcrypt.hash(this.password, 10);
-    next();
 });
 
 // 🔑 Method: Check if password is correct

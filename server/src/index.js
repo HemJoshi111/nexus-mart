@@ -1,12 +1,6 @@
-import dotenv from "dotenv"
+import "dotenv/config"; // THIS MUST BE THE FIRST IMPORT
 import connectDB from "./config/db.js" //In ES Modules, we MUST include the file extension (.js)
 import { app } from "./app.js"
-
-
-// Load environment variables
-dotenv.config({
-    path: './.env'
-});
 
 // Connect to Database first, THEN start the server
 connectDB()

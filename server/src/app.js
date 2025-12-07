@@ -3,7 +3,7 @@ import cors from "cors"
 import cookieParser from "cookie-parser"
 
 //Routes Imports
-import userRoute from "./routes/user.routes.js"
+import userRouter from './routes/user.routes.js';
 
 const app = express();
 
@@ -27,6 +27,29 @@ app.use(cookieParser());
 
 
 //Routes Declaration
-app.use("api/v1/users", userRoute)
+app.use("/api/v1/users", userRouter)
+
+
+
+
+// =========================================================
+// 🛡️ GLOBAL ERROR HANDLER 
+// =========================================================
+app.use((err, req, res, next) => {
+    // 1. If the error is an instance of our custom ApiError, use its status code
+    const statusCode = err.statusCode || 500;
+
+    // 2. Use its message or a default one
+    const message = err.message || "Internal Server Error";
+
+    // 3. Send the JSON response
+    res.status(statusCode).json({
+        success: false,
+        statusCode,
+        message,
+        errors: err.errors || [], // Validation errors if any
+        // stack: err.stack // Optional: Only show stack in dev mode for debugging
+    });
+});
 
 export { app };
