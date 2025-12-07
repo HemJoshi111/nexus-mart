@@ -2,6 +2,9 @@ import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 
+//Routes Imports
+import userRoute from "./routes/user.routes.js"
+
 const app = express();
 
 // 1. Configure CORS
@@ -21,5 +24,9 @@ app.use(express.static("public"));
 
 // 5. Configure Cookie Parser
 app.use(cookieParser());
+
+
+//Routes Declaration
+app.use("api/v1/users", userRoute)
 
 export { app };
