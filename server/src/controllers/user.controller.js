@@ -5,6 +5,25 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { runInNewContext } from "vm";
 
+
+// Helper Function: Generate Access & Refresh Tokens
+const generateAccessAndRefreshTokens = async (userId) => {
+    try {
+        const user = await User.findById(userId)
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        // Save the refresh token in the database
+        user.refreshToken = refreshToken
+        await user.save({ validateBeforeSave: false })
+
+        return { accessToken, refreshToken }
+
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while generating access and refresh token")
+    }
+}
+
 // @desc    Register a new user (Buyer/Seller)
 // @route   POST /api/v1/users/register
 // @access  Public
@@ -126,7 +145,7 @@ const loginUser = asyncHandler(async (req, res) => {
     // Cookie Options (Secure)
     const options = {
         httpOnly: true,  // JavaScript cannot read this cookie (Prevents XSS)
-        secure: true     // Only send over HTTPS (Enable this in production)
+        secure: true     // Only send over HTTPS
     };
 
     return res
@@ -146,25 +165,39 @@ const loginUser = asyncHandler(async (req, res) => {
         );
 });
 
-// Helper Function: Generate Access & Refresh Tokens
-const generateAccessAndRefreshTokens = async (userId) => {
-    try {
-        const user = await User.findById(userId)
-        const accessToken = user.generateAccessToken()
-        const refreshToken = user.generateRefreshToken()
 
-        // Save the refresh token in the database
-        user.refreshToken = refreshToken
-        await user.save({ validateBeforeSave: false })
+// @desc    Logout user (Clear cookies & DB token)
+// @route   POST /api/v1/users/logout
+// @access  Protected (Login required)
+const logoutUser = asyncHandler(async (req, res) => {
+    // 1. Update User in DB: Remove the refreshToken
+    await User.findByIdAndUpdate(
+        req.user._id, // We have this because of verifyJWT middleware!
+        {
+            $unset: {
+                refreshToken: 1 // Removing the field from document
+            }
+        },
+        {
+            new: true
+        }
+    )
 
-        return { accessToken, refreshToken }
-
-    } catch (error) {
-        throw new ApiError(500, "Something went wrong while generating access and refresh token")
+    // 2. Clear Cookies
+    const options = {
+        httpOnly: true,
+        secure: true
     }
-}
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(new ApiResponse(200, {}, "User logged out"))
+})
 
 export {
     registerUser,
     loginUser,
+    logoutUser,
 };
