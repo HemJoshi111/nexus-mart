@@ -35,7 +35,7 @@ const addProduct = asyncHandler(async (req, res) => {
     const product = await Product.create({
         name,
         description,
-        productImage: productImage.url,
+        productImage: productImage.url, //url from cloudinary
         price,
         stock,
         category,
@@ -52,9 +52,34 @@ const addProduct = asyncHandler(async (req, res) => {
 });
 
 
+// @desc    Delete a product
+// @route   DELETE /api/v1/products/:productId
+// @access  Private (Owner Only)
+const deleteProduct = asyncHandler(async (req, res) => {
+    const { productId } = req.params;
 
+    const product = await Product.findById(productId);
+
+    if (!product) {
+        throw new ApiError(404, "Product not found");
+    }
+
+    // Authorization Check
+    if (product.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to delete this product");
+    }
+
+    await Product.findByIdAndDelete(productId);
+
+    // TODO: Delete image from Cloudinary
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "Product deleted successfully"));
+});
 
 export {
     addProduct,
+    deleteProduct,
 
 }

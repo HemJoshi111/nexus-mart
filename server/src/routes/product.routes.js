@@ -14,4 +14,8 @@ router.route("/")
         upload.single("productImage"), // Handle single image upload
         addProduct
     );
+
+
+router.route("/:productId")
+    .delete(verifyJWT, deleteProduct);
 export default router;
