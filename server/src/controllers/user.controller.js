@@ -195,8 +195,69 @@ const logoutUser = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "User logged out"))
 })
 
+
+// @desc    Refresh the expired access token using refresh token
+// @route   POST /api/v1/users/refresh-token
+// @access  Public
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    // 1. Get the refresh token from cookies (Web) or body (Mobile)
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
+
+    if (!incomingRefreshToken) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    try {
+        // 2. Verify the token
+        const decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        );
+
+        // 3. Find the user
+        const user = await User.findById(decodedToken?._id);
+
+        if (!user) {
+            throw new ApiError(401, "Invalid refresh token");
+        }
+
+        // 4. SECURITY CHECK: Match the token with the one in DB
+        // If the token user sent !== the token in DB, it means it's an old/used token.
+        if (incomingRefreshToken !== user?.refreshToken) {
+            throw new ApiError(401, "Refresh token is expired or used");
+        }
+
+        // 5. Generate NEW tokens (Rotation)
+        const { accessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user._id);
+
+        // 6. Send Cookies
+        const options = {
+            httpOnly: true,
+            secure: true
+        };
+
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", newRefreshToken, options)
+            .json(
+                new ApiResponse(
+                    200,
+                    {
+                        accessToken, // Only send Access Token in JSON
+                    },
+                    "Access token refreshed"
+                )
+            );
+
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Invalid refresh token");
+    }
+});
+
 export {
     registerUser,
     loginUser,
     logoutUser,
+    refreshAccessToken
 };

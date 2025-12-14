@@ -100,7 +100,6 @@ const deleteCategory = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "Category deleted successfully"));
 });
 
-
 export {
     createCategory,
     getAllCategories,
